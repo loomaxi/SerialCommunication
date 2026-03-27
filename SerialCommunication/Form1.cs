@@ -51,5 +51,10 @@ namespace SerialCommunication
                 if (comboBoxPoort.Items.Count > 0) comboBoxPoort.SelectedIndex = 0;
             }
         }
+
+        private void buttonConnect_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
