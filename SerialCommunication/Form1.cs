@@ -56,5 +56,10 @@ namespace SerialCommunication
         {
             // abc def ghi jkl
         }
+
+        private void comboBoxPoort_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
