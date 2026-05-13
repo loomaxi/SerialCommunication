@@ -14,6 +14,11 @@ namespace SerialCommunication
 {
     public partial class Form1 : Form
     {
+        // 0 = OK
+        // 1 = ALARM
+        // 2 = BEVESTIGD
+
+        int toestand = 0;
         public Form1()
         {
             InitializeComponent();
@@ -253,6 +258,8 @@ namespace SerialCommunication
             timerOefening3.Enabled = tabControl.SelectedIndex == 3;
             timerOefening4.Enabled = tabControl.SelectedIndex == 4;
             timerOefening5.Enabled = tabControl.SelectedIndex == 5;
+
+            timerTemperatuurAlarm.Enabled = (tabControl.SelectedTab == tabPageTemperatuurAlarm);
         }
 
         private void timerOefening3_Tick(object sender, EventArgs e)
@@ -387,6 +394,135 @@ namespace SerialCommunication
                 { 
                     serialPortArduino.Close();
                 }
+                radioButtonVerbonden.Checked = false;
+                buttonConnect.Text = "Connect";
+                labelStatus.Text = "Status: Disconnected";
+            }
+        }
+
+        private void timerTemperatuurAlarm_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (serialPortArduino.IsOpen)
+                {
+                    serialPortArduino.ReadExisting();
+
+                    // Analoge pin A0 uitlezen
+                    string commando = "get a0";
+                    serialPortArduino.WriteLine(commando);
+
+                    string antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+
+                    int rawAlarmTemp = Int32.Parse(antwoord);
+
+                    // Herschalen tussen -10°C en +60°C
+                    double richtingscoefficientAlarm = (60.0 - (-10.0)) / (1023.0 - 0.0);
+                    double offsetAlarm = -10.0;
+
+                    double alarmTemp = rawAlarmTemp * richtingscoefficientAlarm + offsetAlarm;
+
+                    labelAlarmTemp.Text = alarmTemp.ToString("0.0") + " °C";
+
+
+                    // Analoge pin A1 uitlezen
+                    commando = "get a1";
+                    serialPortArduino.WriteLine(commando);
+
+                    antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+
+                    int rawHuidigeTemp = Int32.Parse(antwoord);
+
+                    // Herschalen volgens sensorspecificaties
+                    double richtingscoefficientHuidige = 500.0 / 1023.0;
+                    double offsetHuidige = 0.0;
+
+                    double huidigeTemp = rawHuidigeTemp * richtingscoefficientHuidige + offsetHuidige;
+
+                    labelHuidigeTemperatuur.Text = huidigeTemp.ToString("0.0") + " °C";
+
+                    if (toestand == 0 && huidigeTemp >= alarmTemp)
+                    {
+                        toestand = 1;
+                    }
+
+
+                    // Digitale pin D5 uitlezen
+                    commando = "get d5";
+                    serialPortArduino.WriteLine(commando);
+
+                    antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+
+                    bool buttonBevestig = (antwoord == "1");
+
+                    if (toestand == 1 && buttonBevestig)
+                    {
+                        if (huidigeTemp < alarmTemp)
+                        {
+                            toestand = 0;
+                        }
+                        else
+                        {
+                            toestand = 2;
+                        }
+                    }
+                    if (toestand == 2 && huidigeTemp < alarmTemp)
+                    {
+                        toestand = 0;
+                    }
+                    if (toestand == 0)
+                    {
+                        labelStatus2.Text = "OK";
+                    }
+                    else if (toestand == 1)
+                    {
+                        labelStatus2.Text = "ALARM";
+                    }
+                    else if (toestand == 2)
+                    {
+                        labelStatus2.Text = "BEVESTIGD";
+                    }
+                    if (toestand == 0)
+                    {
+                        // OK
+                        serialPortArduino.WriteLine("set d2 low");
+                        serialPortArduino.WriteLine("set d3 low");
+                    }
+                    else if (toestand == 1)
+                    {
+                        // ALARM
+                        serialPortArduino.WriteLine("set d2 high");
+                        serialPortArduino.WriteLine("set d3 high");
+                    }
+                    else if (toestand == 2)
+                    {
+                        // BEVESTIGD
+                        serialPortArduino.WriteLine("set d2 high");
+                        serialPortArduino.WriteLine("set d3 low");
+                    }
+                }
+                else
+                {
+                    radioButtonVerbonden.Checked = false;
+                    labelStatus.Text = "Geen poort gedetecteerd";
+                    buttonConnect.Text = "Connect";
+                }
+            }
+            catch (Exception exeption)
+            {
+                labelStatus.Text = "Error" + exeption.Message;
+
+                if (serialPortArduino.IsOpen)
+                {
+                    serialPortArduino.Close();
+                }
+
                 radioButtonVerbonden.Checked = false;
                 buttonConnect.Text = "Connect";
                 labelStatus.Text = "Status: Disconnected";
