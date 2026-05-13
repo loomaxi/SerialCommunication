@@ -120,11 +120,6 @@ namespace SerialCommunication
 
         }
 
-        private void timerOefening5_Tick(object sender, EventArgs e)
-        {
-
-        }
-
         private void checkBoxDigital2_CheckedChanged(object sender, EventArgs e)
         {
             try
@@ -248,6 +243,153 @@ namespace SerialCommunication
                 serialPortArduino.Close();
                 radioButtonVerbonden.Checked = false;
                 buttonConnect.Text = "Connect";
+            }
+        }
+
+       
+
+        private void tabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            timerOefening3.Enabled = tabControl.SelectedIndex == 3;
+            timerOefening4.Enabled = tabControl.SelectedIndex == 4;
+            timerOefening5.Enabled = tabControl.SelectedIndex == 5;
+        }
+
+        private void timerOefening3_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (serialPortArduino.IsOpen)
+                {
+                    serialPortArduino.ReadExisting();
+                    string commando = "get d5";
+                    serialPortArduino.WriteLine(commando);
+                    string antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+                    radioButtonDigital5.Checked = (antwoord == "1");
+
+                    commando = "get d6";
+                    serialPortArduino.WriteLine(commando);
+                    antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+                    radioButtonDigital6.Checked = (antwoord == "1");
+
+                    commando = "get d7";
+                    serialPortArduino.WriteLine(commando);
+                    antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+                    radioButtonDigital7.Checked = (antwoord == "1");
+                }
+            }
+            catch (Exception exeption)
+            {
+                labelStatus.Text = "Error" + exeption.Message;
+                serialPortArduino.Close();
+                radioButtonVerbonden.Checked = false;
+                buttonConnect.Text = "Connect";
+            }
+        }
+
+        private void timerOefening4_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (serialPortArduino.IsOpen) 
+                {
+                    serialPortArduino.ReadExisting();
+                    string commando = "get a0";
+                    serialPortArduino.WriteLine(commando);
+                    string antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord= antwoord.Substring(4);
+                    labelAnalog0.Text = antwoord;
+
+                    int value = Int32.Parse(antwoord);
+                    labelAnalog0.Text = value.ToString();
+                }
+            }
+            catch (Exception exeption)
+            {
+                labelStatus.Text = "Error" + exeption.Message;
+                serialPortArduino.Close();
+                radioButtonVerbonden.Checked = false;
+                buttonConnect.Text = "Connect";
+            }
+        }
+
+        private void timerOefening5_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (serialPortArduino.IsOpen)
+                {
+                    serialPortArduino.ReadExisting();
+
+                    string commando = "get a0";
+                    serialPortArduino.WriteLine(commando);
+                    string antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+
+                    int rawGewensteTemp = Int32.Parse(antwoord);
+
+
+                    double richtingscoefficientGewenst = (45.0 - 5.0) / (1023.0 - 0.0);
+                    double offsetGewenst = 5.0;
+
+                    double gewensteTemp = rawGewensteTemp * richtingscoefficientGewenst + offsetGewenst;
+                    labelGewensteTemp.Text = gewensteTemp.ToString("0.0") + " °C";
+
+
+
+
+                    commando = "get a1";
+                    serialPortArduino.WriteLine(commando);
+
+                    antwoord = serialPortArduino.ReadLine();
+                    antwoord = antwoord.TrimEnd();
+                    antwoord = antwoord.Substring(4);
+
+                    int rawHuidigeTemp = Int32.Parse(antwoord);
+
+
+                    double richtingscoefficientHuidig = 500.0 / 1023.0;
+                    double offsetHuidig = 0.0;
+
+                    double huidigeTemp = rawHuidigeTemp * richtingscoefficientHuidig + offsetHuidig;
+
+                    labelHuidigeTemp.Text = huidigeTemp.ToString("0.0") + " °C";
+
+
+                    if (huidigeTemp < gewensteTemp)
+                    {
+                        serialPortArduino.WriteLine("set d2 high");
+                    }
+                    else
+                    {
+                        serialPortArduino.WriteLine("set d2 low");
+                    }
+                }
+                else
+                {
+                    radioButtonVerbonden.Checked = false;
+                    labelStatus.Text = "Geen poort gedetecteerd";
+                    buttonConnect.Text = "Connect";
+                }
+            }
+            catch (Exception exeption)
+            {
+                labelStatus.Text = "Error" + exeption.Message;
+                if (serialPortArduino.IsOpen) 
+                { 
+                    serialPortArduino.Close();
+                }
+                radioButtonVerbonden.Checked = false;
+                buttonConnect.Text = "Connect";
+                labelStatus.Text = "Status: Disconnected";
             }
         }
     }
